@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FlightDao {
 
-    // Все аэропорты кроме выбранного — это и есть список рейсов
     @Query("SELECT * FROM airport WHERE iata_code != :departureIata")
     fun getDestinationAirports(departureIata: String): Flow<List<AirportEntity>>
 
@@ -25,5 +24,5 @@ interface FlightDao {
     suspend fun removeFavorite(depIata: String, destIata: String)
 
     @Query("SELECT COUNT(*) FROM favorite_flight WHERE departure_iata = :depIata AND destination_iata = :destIata")
-    suspend fun isFavorite(depIata: String, destIata: String): Int
+    fun isFavorite(depIata: String, destIata: String): Flow<Boolean>
 }

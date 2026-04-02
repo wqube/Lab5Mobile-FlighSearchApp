@@ -42,13 +42,24 @@ fun MainScreenContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state.flights.isEmpty()) {
-            Text("No flights found")
-        } else {
+        // Показываем подсказки, если они есть
+        if (state.airportSuggestions.isNotEmpty()) {
+            AirportSuggestions(
+                airports = state.airportSuggestions,
+                onAirportSelected = onAirportSelected
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Показываем список рейсов, если есть
+        if (state.flights.isNotEmpty()) {
             FlightsList(
                 flights = state.flights,
                 onFavoriteClick = onFavoriteClick
             )
+        } else if (state.airportSuggestions.isEmpty()) {
+            // Показать "No flights found" только если подсказок нет
+            Text("No flights found")
         }
     }
 }

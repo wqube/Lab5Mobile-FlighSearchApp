@@ -31,10 +31,10 @@ class MainViewModel(
 
     private fun searchByIata(iata: String) {
         viewModelScope.launch {
-            val airports = repository.searchAirports(iata)
+            val airports = repository.searchAirports(iata).first()
             val airport = airports.firstOrNull() ?: return@launch
 
-            repository.getFlights(airport.iataCode)  // ← было airport.id
+            repository.getFlights(airport.iataCode)
                 .onEach { flights ->
                     _uiState.update {
                         it.copy(
@@ -50,13 +50,20 @@ class MainViewModel(
 
     fun onQueryChanged(text: String) {
         viewModelScope.launch {
-            val airports = repository.searchAirports(text)
-            _uiState.update {
-                it.copy(
-                    query = text,
-                    airportSuggestions = airports,
-                    flights = emptyList()
-                )
+            if (text.isBlank()) {
+                loadFavorites()
+                _uiState.update { it.copy(query = "", airportSuggestions = emptyList()) }
+            }
+            else {
+                val airports = repository.searchAirports(text).first()
+                _uiState.update {
+                    it.copy(
+                        query = text,
+                        airportSuggestions = airports,
+                        flights = emptyList(),
+                        isShowingFavorites = false
+                    )
+                }
             }
         }
     }
@@ -66,7 +73,7 @@ class MainViewModel(
             preferences.saveLastIata(airport.iataCode)
         }
 
-        repository.getFlights(airport.iataCode)  // ← было airport.id
+        repository.getFlights(airport.iataCode)
             .onEach { flights ->
                 _uiState.update {
                     it.copy(
