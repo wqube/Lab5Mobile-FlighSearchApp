@@ -14,15 +14,15 @@ interface FlightDao {
     @Query("SELECT * FROM airport WHERE iata_code != :departureIata")
     fun getDestinationAirports(departureIata: String): Flow<List<AirportEntity>>
 
-    @Query("SELECT * FROM favorite_flight")
+    @Query("SELECT * FROM favorite")
     fun getFavoriteFlights(): Flow<List<FavoriteFlightEntity>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addFavorite(flight: FavoriteFlightEntity)
 
-    @Query("DELETE FROM favorite_flight WHERE departure_iata = :depIata AND destination_iata = :destIata")
+    @Query("DELETE FROM favorite WHERE departure_code = :depIata AND destination_code = :destIata")
     suspend fun removeFavorite(depIata: String, destIata: String)
 
-    @Query("SELECT COUNT(*) FROM favorite_flight WHERE departure_iata = :depIata AND destination_iata = :destIata")
+    @Query("SELECT COUNT(*) FROM favorite WHERE departure_code = :depIata AND destination_code = :destIata")
     fun isFavorite(depIata: String, destIata: String): Flow<Boolean>
 }

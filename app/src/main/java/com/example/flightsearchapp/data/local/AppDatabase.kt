@@ -5,8 +5,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
-
 import com.example.flightsearchapp.data.local.dao.AirportDao
 import com.example.flightsearchapp.data.local.dao.FlightDao
 import com.example.flightsearchapp.data.local.entity.AirportEntity
@@ -28,20 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 "flight_search.db"
             )
-                .createFromAsset("flight_search.db")
-                .addCallback(object : RoomDatabase.Callback() {
-                    override fun onCreate(db: SupportSQLiteDatabase) {
-                        super.onCreate(db)
-                        db.execSQL("""
-                        CREATE TABLE IF NOT EXISTS favorite_flight (
-                            departure_iata TEXT NOT NULL,
-                            destination_iata TEXT NOT NULL,
-                            PRIMARY KEY (departure_iata, destination_iata)
-                        )
-                    """)
-                    }
-                })
-                .fallbackToDestructiveMigration()
-                .build()
+            .createFromAsset("flight_search.db")
+            .build()
     }
 }

@@ -8,5 +8,6 @@ data class MainUiState(
     val airportSuggestions: List<Airport> = emptyList(),
     val flights: List<Flight> = emptyList(),
     val isShowingFavorites: Boolean = true,
+    val isLoading: Boolean = false,
     val error: String? = null
 )

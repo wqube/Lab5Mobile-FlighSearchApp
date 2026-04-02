@@ -28,12 +28,16 @@ class FlightRepositoryImpl(
         val favoritesFlow = flightDao.getFavoriteFlights()
 
         return combine(destinationsFlow, favoritesFlow) { destinations, favorites ->
-            val favSet = favorites.map { it.departure_iata to it.destination_iata }.toSet()
+            val departureAirport = airportDao.getAirportByIata(departureIata)
+            val departureName = departureAirport?.name ?: departureIata
+
+            val favSet = favorites.map { it.departureCode to it.destinationCode }.toSet()
 
             destinations.map { dest ->
+
                 Flight(
                     departureIata = departureIata,
-                    departureName = "",
+                    departureName = departureName,
                     destinationIata = dest.iataCode,
                     destinationName = dest.name,
                     isFavorite = favSet.contains(departureIata to dest.iataCode)
@@ -46,11 +50,15 @@ class FlightRepositoryImpl(
         return flightDao.getFavoriteFlights()
             .map { favorites ->
                 favorites.map { fav ->
+
+                    val depAirport = airportDao.getAirportByIata(fav.departureCode)
+                    val destAirport = airportDao.getAirportByIata(fav.destinationCode)
+
                     Flight(
-                        departureIata = fav.departure_iata,
-                        departureName = "",
-                        destinationIata = fav.destination_iata,
-                        destinationName = "",
+                        departureIata = fav.departureCode,
+                        departureName = depAirport?.name ?: fav.departureCode,
+                        destinationIata = fav.destinationCode,
+                        destinationName = destAirport?.name ?: fav.destinationCode,
                         isFavorite = true
                     )
                 }
@@ -62,7 +70,7 @@ class FlightRepositoryImpl(
         if (isFav) {
             flightDao.removeFavorite(departureIata, destinationIata)
         } else {
-            flightDao.addFavorite(FavoriteFlightEntity(departureIata, destinationIata))
+            flightDao.addFavorite(FavoriteFlightEntity(departureCode = departureIata, destinationCode = destinationIata))
         }
     }
 }

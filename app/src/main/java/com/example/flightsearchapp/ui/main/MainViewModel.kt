@@ -6,6 +6,7 @@ import com.example.flightsearchapp.data.datastore.SearchPreferences
 import com.example.flightsearchapp.domain.model.Airport
 import com.example.flightsearchapp.domain.model.Flight
 import com.example.flightsearchapp.domain.repository.FlightRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -15,54 +16,98 @@ class MainViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
-    val uiState: StateFlow<MainUiState> = _uiState
+    val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+    private var listJob: Job? = null
 
     init {
         viewModelScope.launch {
-            preferences.lastIataFlow().collect { iata ->
-                if (iata.isNullOrEmpty()) {
-                    loadFavorites()
-                } else {
-                    searchByIata(iata)
-                }
+            val savedIata = preferences.lastIataFlow().first()
+            if (savedIata.isNullOrEmpty()) {
+                loadFavorites()
+            } else {
+                _uiState.update { it.copy(query = savedIata) }
+                subscribeToFlights(savedIata)
             }
         }
     }
 
-    private fun searchByIata(iata: String) {
-        viewModelScope.launch {
-            val airports = repository.searchAirports(iata).first()
-            val airport = airports.firstOrNull() ?: return@launch
-
-            repository.getFlights(airport.iataCode)
-                .onEach { flights ->
-                    _uiState.update {
-                        it.copy(
-                            query = iata,
-                            flights = flights,
-                            isShowingFavorites = false
-                        )
-                    }
+    private fun subscribeToFlights(departureIata: String) {
+        listJob?.cancel()
+        listJob = repository.getFlights(departureIata)
+            .onEach { flights ->
+                _uiState.update {
+                    it.copy(
+                        flights = flights,
+                        isShowingFavorites = false,
+                        isLoading = false,
+                        error = null
+                    )
                 }
-                .launchIn(viewModelScope)
-        }
+            }
+            .catch { e ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Ошибка загрузки рейсов: ${e.localizedMessage}"
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun subscribeToFavorites() {
+        listJob?.cancel()
+        listJob = repository.getFavorites()
+            .onEach { flights ->
+                _uiState.update {
+                    it.copy(
+                        flights = flights,
+                        isShowingFavorites = true,
+                        isLoading = false,
+                        error = null
+                    )
+                }
+            }
+            .catch { e ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Ошибка загрузки избранного: ${e.localizedMessage}"
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     fun onQueryChanged(text: String) {
         viewModelScope.launch {
             if (text.isBlank()) {
-                loadFavorites()
-                _uiState.update { it.copy(query = "", airportSuggestions = emptyList()) }
-            }
-            else {
-                val airports = repository.searchAirports(text).first()
+                preferences.clear()
                 _uiState.update {
                     it.copy(
-                        query = text,
-                        airportSuggestions = airports,
+                        query = "",
+                        airportSuggestions = emptyList(),
                         flights = emptyList(),
-                        isShowingFavorites = false
+                        error = null
                     )
+                }
+                loadFavorites()
+            } else {
+                _uiState.update { it.copy(query = text, error = null) }
+                try {
+                    val airports = repository.searchAirports(text).first()
+                    _uiState.update {
+                        it.copy(
+                            airportSuggestions = airports,
+                            flights = emptyList(),
+                            isShowingFavorites = false
+                        )
+                    }
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(error = "Ошибка поиска: ${e.localizedMessage}")
+                    }
                 }
             }
         }
@@ -73,38 +118,33 @@ class MainViewModel(
             preferences.saveLastIata(airport.iataCode)
         }
 
-        repository.getFlights(airport.iataCode)
-            .onEach { flights ->
-                _uiState.update {
-                    it.copy(
-                        airportSuggestions = emptyList(),
-                        flights = flights,
-                        isShowingFavorites = false
-                    )
-                }
-            }
-            .launchIn(viewModelScope)
+        _uiState.update {
+            it.copy(
+                query = airport.iataCode,
+                airportSuggestions = emptyList(),
+                isShowingFavorites = false,
+                isLoading = true
+            )
+        }
+        subscribeToFlights(airport.iataCode)
     }
 
     fun loadFavorites() {
-        repository.getFavorites()
-            .onEach { flights ->
-                _uiState.update {
-                    it.copy(
-                        flights = flights,
-                        isShowingFavorites = true
-                    )
-                }
-            }
-            .launchIn(viewModelScope)
+        subscribeToFavorites()
     }
 
     fun toggleFavorite(flight: Flight) {
         viewModelScope.launch {
-            repository.toggleFavorite(
-                departureIata = flight.departureIata,
-                destinationIata = flight.destinationIata
-            )
+            try {
+                repository.toggleFavorite(
+                    departureIata = flight.departureIata,
+                    destinationIata = flight.destinationIata
+                )
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(error = "Ошибка обновления избранного: ${e.localizedMessage}")
+                }
+            }
         }
     }
 }

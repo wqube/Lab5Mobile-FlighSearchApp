@@ -1,9 +1,17 @@
 package com.example.flightsearchapp.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-@Entity(tableName = "favorite_flight", primaryKeys = ["departure_iata", "destination_iata"])
+@Entity(tableName = "favorite")
 data class FavoriteFlightEntity(
-    val departure_iata: String,
-    val destination_iata: String
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
+    @ColumnInfo(name = "departure_code")
+    val departureCode: String,
+
+    @ColumnInfo(name = "destination_code")
+    val destinationCode: String
 )

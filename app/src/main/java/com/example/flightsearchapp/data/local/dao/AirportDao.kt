@@ -15,4 +15,7 @@ interface AirportDao {
         LIMIT 10
     """)
     fun searchAirports(query: String): Flow<List<AirportEntity>>
+
+    @Query("SELECT * FROM airport WHERE iata_code = :iata LIMIT 1")
+    suspend fun getAirportByIata(iata: String): AirportEntity?
 }
