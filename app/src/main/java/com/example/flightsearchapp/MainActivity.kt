@@ -25,21 +25,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun MainScreenPreview() {
-//
-//    val fakeState = MainUiState(
-//        query = "AMS",
-//        airportSuggestions = emptyList(),
-//        flights = emptyList()
-//    )
-//
-//    MainScreenContent(
-//        state = fakeState,
-//        onQueryChange = {},
-//        onAirportSelected = {},
-//        onFavoriteClick = {}
-//    )
-//}
